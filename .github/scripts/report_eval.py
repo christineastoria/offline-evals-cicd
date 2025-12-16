@@ -7,41 +7,20 @@ Processes evaluation results and creates PR comments with test results.
 import argparse
 import glob
 import json
-import operator
 import os
 import sys
-import time
-from collections import defaultdict
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 from langsmith import Client
 
-# Operator map for threshold comparisons
-OP_MAP = {
-    ">": operator.gt,
-    "<": operator.lt,
-    ">=": operator.ge,
-    "<=": operator.le,
-    "==": operator.eq,
-    "!=": operator.ne,
-}
 
-
-def parse_threshold(threshold_str: str) -> tuple:
-    """Parse threshold expression and return operator and value."""
-    for symbol in sorted(OP_MAP.keys(), key=len, reverse=True):
-        if threshold_str.startswith(symbol):
-            return OP_MAP[symbol], float(threshold_str[len(symbol) :])
-    raise ValueError(f"Invalid threshold format: {threshold_str}")
-
-
-def format_score(value: Optional[float]) -> str:
+def format_score(value: float | None) -> str:
     """Format score for display."""
     return f"{value:.2f}" if value is not None else "N/A"
 
 
-def process_config(config_path: str, client: Client, run_limit: int = 20) -> Dict[str, Any]:
-    """Process a single evaluation config file."""
+def process_config(config_path: str, client: Client) -> Dict[str, Any]:
+    """Process a single evaluation config file using project stats API."""
     print(f"Processing evaluation config: {config_path}")
 
     try:
@@ -52,80 +31,55 @@ def process_config(config_path: str, client: Client, run_limit: int = 20) -> Dic
         return {}
 
     experiment_name = config.get("experiment_name")
-    criteria = config.get("criteria", {})
     dataset_name = config.get("dataset_name")
 
     if not experiment_name:
         print(f"No experiment_name found in {config_path}")
         return {}
+    
+    if not dataset_name:
+        print(f"WARNING: No dataset_name found in {config_path}")
+        return {}
 
     try:
-        print(f"Fetching runs for experiment: {experiment_name} (limit: {run_limit})")
-        # Limit to most recent runs to avoid slow fetches
-        runs = list(client.list_runs(project_name=experiment_name, limit=run_limit))
-        if not runs:
-            print(f"No runs found for experiment: {experiment_name}")
-            return {"experiment_name": experiment_name, "results": []}
-
-        print(f"Found {len(runs)} runs, fetching feedback...")
-        run_ids = [r.id for r in runs]
+        print(f"Fetching project stats for: {experiment_name}")
         
-        # Fetch feedback for the runs
-        feedbacks = list(client.list_feedback(run_ids=run_ids))
-        print(f"Retrieved {len(feedbacks)} feedback entries")
-
-        feedback_by_key = defaultdict(list)
-        for fb in feedbacks:
-            if fb.score is not None:
-                feedback_by_key[fb.key].append(fb.score)
-
+        # Use read_project with include_stats for a single, efficient API call
+        project = client.read_project(
+            project_name=experiment_name, 
+            include_stats=True
+        )
+        
+        # Extract feedback stats from project metadata
+        feedback_stats = project.feedback_stats or {}
+        
+        if not feedback_stats:
+            print(f"No feedback stats found for: {experiment_name}")
+            return {
+                "experiment_name": experiment_name,
+                "dataset_name": dataset_name,
+                "error": "No feedback statistics available for this experiment"
+            }
+        
+        print(f"Retrieved stats for {len(feedback_stats)} feedback keys")
+        
         table_rows = []
-        num_passed = 0
-        num_failed = 0
-
-        for key, scores in feedback_by_key.items():
-            avg_score = sum(scores) / len(scores) if scores else None
-            min_score = min(scores) if scores else None
-            max_score = max(scores) if scores else None
-            num_runs = len(scores)
-            threshold_expr = criteria.get(key)
-            passed = "N/A"
-            check = "–"
-
-            if threshold_expr:
-                try:
-                    op, value = parse_threshold(threshold_expr)
-                    result = op(avg_score, value)
-                    passed = "Pass" if result else "Fail"
-                    check = threshold_expr
-                    if result:
-                        num_passed += 1
-                    else:
-                        num_failed += 1
-                except ValueError as e:
-                    print(
-                        f"Invalid threshold '{threshold_expr}' for key '{key}': {e}"
-                    )
-                    passed = "Fail"
-                    num_failed += 1
-
+        
+        # Process feedback stats directly from project metadata
+        for key, stats in feedback_stats.items():
+            # stats typically has: avg, count, and possibly other aggregates
+            avg_score = stats.get('avg')
+            num_runs = stats.get('count', 0)
+            
             table_rows.append({
                 "key": key,
                 "avg_score": avg_score,
-                "min_score": min_score,
-                "max_score": max_score,
                 "num_runs": num_runs,
-                "threshold": check,
-                "passed": passed
             })
-
-        # Get experiment URL
-        experiment_url = f"https://smith.langchain.com/o/default/datasets/{dataset_name or 'unknown'}/compare?selectedSessions={experiment_name}"
         
-        # Get dataset URL if available
-        dataset_url = None
-        if dataset_name:
-            dataset_url = f"https://smith.langchain.com/o/default/datasets/{dataset_name}"
+        # Build explicit URLs with the dataset_name we know
+        experiment_url = f"https://smith.langchain.com/o/default/datasets/{dataset_name}/compare?selectedSessions={experiment_name}"
+        dataset_url = f"https://smith.langchain.com/o/default/datasets/{dataset_name}"
 
         return {
             "experiment_name": experiment_name,
@@ -133,10 +87,7 @@ def process_config(config_path: str, client: Client, run_limit: int = 20) -> Dic
             "experiment_url": experiment_url,
             "dataset_url": dataset_url,
             "table_rows": table_rows,
-            "num_passed": num_passed,
-            "num_failed": num_failed,
-            "total": num_passed + num_failed,
-            "num_examples": len(runs),
+            "num_examples": project.run_count or 0,
         }
 
     except Exception as e:
@@ -148,7 +99,7 @@ def process_config(config_path: str, client: Client, run_limit: int = 20) -> Dic
             error_msg = "LangSmith API request failed. Please try again later."
         
         print(f"Error processing experiment {experiment_name}: {error_msg}")
-        return {"experiment_name": experiment_name, "error": error_msg}
+        return {"experiment_name": experiment_name, "dataset_name": dataset_name, "error": error_msg}
 
 
 # Metric descriptions for common evaluation types
@@ -272,14 +223,6 @@ Examples:
         "--verbose", "-v", action="store_true", help="Enable verbose output"
     )
 
-    parser.add_argument(
-        "--limit",
-        "-l",
-        type=int,
-        default=20,
-        help="Maximum number of runs to fetch per experiment (default: 20)",
-    )
-
     args = parser.parse_args()
 
     # Set up LangSmith client
@@ -311,7 +254,7 @@ Examples:
             print(f"Config file not found: {config_path}")
             continue
 
-        result = process_config(config_path, client, run_limit=args.limit)
+        result = process_config(config_path, client)
         if result:
             results.append(result)
 
