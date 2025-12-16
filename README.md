@@ -3,7 +3,8 @@
 Demo for continuous daily evaluation of LLM agents with refreshed datasets and automated offline eval reports sent to Slack.
 
 ## Overview
-Demonstrates evaluating financial agents against fresh data daily using LangSmith evaluations in CI/CD using llm-as-judge, trajectory, and prebuilt evals. 
+Demonstrates evaluating financial agents against fresh data daily using LangSmith evaluations in CI/CD.
+Evals use llm-as-judge, trajectory, tool and argument-specific custom code evals, and prebuilt evals from LangChain open source. 
 
 ## Project Structure
 ```
