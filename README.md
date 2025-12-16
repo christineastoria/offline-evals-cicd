@@ -1,6 +1,7 @@
 # Financial Agents CI/CD Pipeline
 
 Demo for continuous daily evaluation of LLM agents with refreshed datasets and automated offline eval reports sent to Slack.
+<img width="520" height="116" alt="Screenshot 2025-12-16 at 3 35 42 PM" src="https://github.com/user-attachments/assets/cf74858a-fc22-4168-8d5c-3081df31b94e" />
 
 ## Overview
 Demonstrates evaluating financial agents against fresh data daily using LangSmith evaluations in CI/CD.
