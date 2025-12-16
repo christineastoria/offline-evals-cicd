@@ -29,12 +29,14 @@ financial-agents-cicd/
 └── README.md
 ```
 ### Key Features
-- Daily dataset refresh with latest data from your APIs
-- Trajectory evaluation using agentevals (unordered tool matching)
-- LLM-as-judge with openevals and custom evaluators
-- GitHub Actions CI/CD (push, PR, or cron schedule)
-- Slack notifications with evaluation reports
-- Versioned datasets with daily tags
+Daily at 9am using github CI/CD
+- Batch refresh dataset with versioning & tag for the latest day
+- Run evals on 2 different agents (simulating different input/output types):
+    - unordered trajectory match
+    - openevals correctness llm-as-judge
+    - custom relevance llm-as-judge
+    - custom tools & args eval 
+- sends slack notification with report from the eval 
 
 ### Agents to evaluate
 
