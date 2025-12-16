@@ -118,75 +118,67 @@ jobs:
       run: |
         # Determine status
         if [ "${{ needs.run-evaluations.result }}" == "success" ]; then
-          STATUS="success"
-          EMOJI=":white_check_mark:"
+          STATUS="completed"
         else
-          STATUS="failure"
-          EMOJI=":x:"
+          STATUS="failed"
         fi
         
-        # Read evaluation report if it exists
+        # Read evaluation report (limit to 1500 chars for Slack)
         if [ -f eval_comment.md ]; then
-          REPORT=$(cat eval_comment.md | head -n 50)
+          REPORT=$(head -c 1500 eval_comment.md)
         else
           REPORT="Report not available"
         fi
         
-        # Create Slack message payload
-        cat > slack_message.json <<EOF
-        {
-          "blocks": [
-            {
-              "type": "header",
-              "text": {
-                "type": "plain_text",
-                "text": "$EMOJI Financial Agents Evaluation - $STATUS"
-              }
-            },
-            {
-              "type": "section",
-              "fields": [
-                {
-                  "type": "mrkdwn",
-                  "text": "*Repository:*\n${{ github.repository }}"
-                },
-                {
-                  "type": "mrkdwn",
-                  "text": "*Branch:*\n${{ github.ref_name }}"
-                },
-                {
-                  "type": "mrkdwn",
-                  "text": "*Triggered by:*\n${{ github.actor }}"
-                },
-                {
-                  "type": "mrkdwn",
-                  "text": "*Run ID:*\n${{ github.run_id }}"
+        # Use jq to properly create JSON with escaped strings
+        jq -n \
+          --arg status "$STATUS" \
+          --arg repo "${{ github.repository }}" \
+          --arg branch "${{ github.ref_name }}" \
+          --arg actor "${{ github.actor }}" \
+          --arg run_id "${{ github.run_id }}" \
+          --arg report "$REPORT" \
+          --arg run_url "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
+          '{
+            blocks: [
+              {
+                type: "header",
+                text: {
+                  type: "plain_text",
+                  text: "Financial Agents Evaluation"
                 }
-              ]
-            },
-            {
-              "type": "section",
-              "text": {
-                "type": "mrkdwn",
-                "text": "*Evaluation Results:*\n\`\`\`\n$(echo "$REPORT" | head -n 20)\n\`\`\`"
-              }
-            },
-            {
-              "type": "actions",
-              "elements": [
-                {
-                  "type": "button",
-                  "text": {
-                    "type": "plain_text",
-                    "text": "View Full Results"
-                  },
-                  "url": "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+              },
+              {
+                type: "section",
+                fields: [
+                  {type: "mrkdwn", text: "*Status:*\n\($status)"},
+                  {type: "mrkdwn", text: "*Branch:*\n\($branch)"},
+                  {type: "mrkdwn", text: "*Triggered by:*\n\($actor)"},
+                  {type: "mrkdwn", text: "*Repository:*\n\($repo)"}
+                ]
+              },
+              {
+                type: "section",
+                text: {
+                  type: "mrkdwn",
+                  text: "*Evaluation Results:*\n```\n\($report)\n```"
                 }
-              ]
-            }
-          ]
-        }
-        EOF
+              },
+              {
+                type: "actions",
+                elements: [
+                  {
+                    type: "button",
+                    text: {type: "plain_text", text: "View Full Results"},
+                    url: $run_url
+                  }
+                ]
+              }
+            ]
+          }' > slack_message.json
+        
+        # Verify JSON is valid
+        jq . slack_message.json > /dev/null || echo "WARNING: Invalid JSON generated"
         
         echo "status=$STATUS" >> $GITHUB_OUTPUT
     

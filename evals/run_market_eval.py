@@ -121,6 +121,7 @@ if __name__ == "__main__":
     
     output_metadata = {
         "experiment_name": experiment_results.experiment_name,
+        "dataset_name": "financial-market-agent",
         "criteria": criteria,
     }
     

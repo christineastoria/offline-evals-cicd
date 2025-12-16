@@ -1,0 +1,52 @@
+{
+  "blocks": [
+    {
+      "type": "header",
+      "text": {
+        "type": "plain_text",
+        "text": "Financial Agents Evaluation"
+      }
+    },
+    {
+      "type": "section",
+      "fields": [
+        {
+          "type": "mrkdwn",
+          "text": "*Status:*\ncompleted"
+        },
+        {
+          "type": "mrkdwn",
+          "text": "*Branch:*\nmain"
+        },
+        {
+          "type": "mrkdwn",
+          "text": "*Triggered by:*\nlocal-test"
+        },
+        {
+          "type": "mrkdwn",
+          "text": "*Repository:*\nchristineastoria/offline-evals-cicd"
+        }
+      ]
+    },
+    {
+      "type": "section",
+      "text": {
+        "type": "mrkdwn",
+        "text": "*Evaluation Results:*\n```\n# Financial Agents Evaluation Results\n\n## financial-portfolio-eval\n\n[View Experiment in LangSmith](https://smith.langchain.com/o/default/datasets/financial-portfolio-agent/compare?selectedSessions=financial-portfolio-eval)\n\n**Dataset:** financial-portfolio-agent ([view](https://smith.langchain.com/o/default/datasets/financial-portfolio-agent))\n\n**Examples:** 3\n\n**Metrics:**\n\n- **trajectory_unordered_match**: 0.95 — Measures if the agent called the correct tools regardless of order\n- **response_correctness**: 0.92 — LLM judge evaluation of response accuracy compared to reference\n\n---\n\n## financial-market-eval\n\n[View Experiment in LangSmith](https://smith.langchain.com/o/default/datasets/financial-market-agent/compare?selectedSessions=financial-market-eval)\n\n**Dataset:** financial-market-agent ([view](https://smith.langchain.com/o/default/datasets/financial-market-agent))\n\n**Examples:** 3\n\n**Metrics:**\n\n- **response_relevance**: 0.89 — LLM judge evaluation of response relevance to the question\n- **tool_args_match_score**: 0.93 — Measures accuracy of tool names and arguments used\n\n---\n```"
+      }
+    },
+    {
+      "type": "actions",
+      "elements": [
+        {
+          "type": "button",
+          "text": {
+            "type": "plain_text",
+            "text": "View Full Results"
+          },
+          "url": "https://github.com/christineastoria/offline-evals-cicd/actions/runs/12345"
+        }
+      ]
+    }
+  ]
+}

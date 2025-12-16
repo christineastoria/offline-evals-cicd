@@ -52,6 +52,7 @@ def process_config(config_path: str, client: Client) -> Dict[str, Any]:
 
     experiment_name = config.get("experiment_name")
     criteria = config.get("criteria", {})
+    dataset_name = config.get("dataset_name")
 
     if not experiment_name:
         print(f"No experiment_name found in {config_path}")
@@ -77,6 +78,9 @@ def process_config(config_path: str, client: Client) -> Dict[str, Any]:
 
         for key, scores in feedback_by_key.items():
             avg_score = sum(scores) / len(scores) if scores else None
+            min_score = min(scores) if scores else None
+            max_score = max(scores) if scores else None
+            num_runs = len(scores)
             threshold_expr = criteria.get(key)
             passed = "N/A"
             check = "–"
@@ -98,20 +102,69 @@ def process_config(config_path: str, client: Client) -> Dict[str, Any]:
                     passed = "Fail"
                     num_failed += 1
 
-            display_score = format_score(avg_score)
-            table_rows.append((key, display_score, check, passed))
+            table_rows.append({
+                "key": key,
+                "avg_score": avg_score,
+                "min_score": min_score,
+                "max_score": max_score,
+                "num_runs": num_runs,
+                "threshold": check,
+                "passed": passed
+            })
+
+        # Get experiment URL
+        experiment_url = f"https://smith.langchain.com/o/default/datasets/{dataset_name or 'unknown'}/compare?selectedSessions={experiment_name}"
+        
+        # Get dataset URL if available
+        dataset_url = None
+        if dataset_name:
+            dataset_url = f"https://smith.langchain.com/o/default/datasets/{dataset_name}"
 
         return {
             "experiment_name": experiment_name,
+            "dataset_name": dataset_name,
+            "experiment_url": experiment_url,
+            "dataset_url": dataset_url,
             "table_rows": table_rows,
             "num_passed": num_passed,
             "num_failed": num_failed,
             "total": num_passed + num_failed,
+            "num_examples": len(runs),
         }
 
     except Exception as e:
         print(f"Error processing experiment {experiment_name}: {e}")
         return {"experiment_name": experiment_name, "error": str(e)}
+
+
+# Metric descriptions for common evaluation types
+METRIC_DESCRIPTIONS = {
+    "trajectory_unordered_match": "Measures if the agent called the correct tools regardless of order",
+    "trajectory_exact_match": "Measures if the agent called the exact sequence of tools",
+    "response_correctness": "LLM judge evaluation of response accuracy compared to reference",
+    "response_relevance": "LLM judge evaluation of response relevance to the question",
+    "tool_args_match_score": "Measures accuracy of tool names and arguments used",
+    "argument_correctness": "Evaluates if tool arguments match expected values",
+}
+
+def get_metric_description(key: str) -> str:
+    """Get description for a metric key."""
+    # Try exact match first
+    if key in METRIC_DESCRIPTIONS:
+        return METRIC_DESCRIPTIONS[key]
+    
+    # Try partial matches for custom metrics
+    key_lower = key.lower()
+    if "trajectory" in key_lower:
+        return "Evaluates the sequence of tools called by the agent"
+    elif "correctness" in key_lower or "accuracy" in key_lower:
+        return "Evaluates response accuracy"
+    elif "relevance" in key_lower:
+        return "Evaluates response relevance"
+    elif "tool" in key_lower and "arg" in key_lower:
+        return "Evaluates tool usage and arguments"
+    else:
+        return "Custom evaluation metric"
 
 
 def write_markdown_report(
@@ -127,31 +180,41 @@ def write_markdown_report(
             experiment_name = result.get("experiment_name", "Unknown")
 
             if "error" in result:
-                f.write(f"### {experiment_name}\n\n")
+                f.write(f"## {experiment_name}\n\n")
                 f.write(f"**Error:** {result['error']}\n\n")
                 continue
 
             if not result.get("table_rows"):
-                f.write(f"### {experiment_name}\n\n")
+                f.write(f"## {experiment_name}\n\n")
                 f.write("No evaluation results found.\n\n")
                 continue
 
-            f.write(f"### {experiment_name}\n\n")
-            f.write("| Feedback Key | Avg Score | Criterion | Pass? |\n")
-            f.write("|--------------|-----------|-----------|--------|\n")
+            # Header with link
+            f.write(f"## {experiment_name}\n\n")
+            
+            # Links section
+            if result.get("experiment_url"):
+                f.write(f"[View Experiment in LangSmith]({result['experiment_url']})\n\n")
+            
+            if result.get("dataset_name"):
+                f.write(f"**Dataset:** {result['dataset_name']}")
+                if result.get("dataset_url"):
+                    f.write(f" ([view]({result['dataset_url']}))")
+                f.write("\n\n")
+            
+            num_examples = result.get("num_examples", 0)
+            f.write(f"**Examples:** {num_examples}\n\n")
 
+            # List metrics with descriptions
+            f.write("**Metrics:**\n\n")
             for row in result["table_rows"]:
-                f.write(f"| {row[0]} | {row[1]} | {row[2]} | {row[3]} |\n")
+                avg = format_score(row.get("avg_score"))
+                key = row['key']
+                description = get_metric_description(key)
+                
+                f.write(f"- **{key}**: {avg} — {description}\n")
 
-            total = result.get("total", 0)
-            if total > 0:
-                num_passed = result.get("num_passed", 0)
-                num_failed = result.get("num_failed", 0)
-                summary = f"**{num_passed} Passed, {num_failed} Failed**"
-            else:
-                summary = "No thresholds defined."
-
-            f.write(f"\n{summary}\n\n")
+            f.write("\n---\n\n")
 
     print(f"Report written to {output_file}")
 
