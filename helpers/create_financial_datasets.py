@@ -185,8 +185,8 @@ def create_or_update_dataset(dataset_name: str, examples: list):
     # Tag this version with today's date for tracking
     # See: https://docs.langchain.com/langsmith/manage-datasets#tag-a-version
     today = datetime.now().strftime("%Y-%m-%d")
-    client.update_dataset_tag(dataset_name=dataset_name, tag=f"daily-{today}")
-    client.update_dataset_tag(dataset_name=dataset_name, tag="latest")
+    client.update_dataset_tag(dataset_name=dataset_name, as_of="latest", tag=f"daily-{today}")
+    client.update_dataset_tag(dataset_name=dataset_name, as_of="latest", tag="latest")
     print(f"Tagged dataset version as 'daily-{today}' and 'latest'")
     print(f"This version can be referenced in evaluations using the 'daily-{today}' tag")
 
