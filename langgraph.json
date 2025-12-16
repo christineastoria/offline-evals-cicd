@@ -1,0 +1,10 @@
+{
+  "graphs": {
+    "portfolio_agent": "./agents/portfolio_agent.py:agent",
+    "market_data_agent": "./agents/market_data_agent.py:agent"
+  },
+  "env": ".env",
+  "python_version": "3.11",
+  "dependencies": ["."]
+}
+
