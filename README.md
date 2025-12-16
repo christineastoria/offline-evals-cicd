@@ -11,13 +11,12 @@ Demonstrates evaluating financial agents against fresh data daily using LangSmit
 **Portfolio Agent** - Trajectory + Correctness
 - Unordered trajectory matching (agentevals open source) - validates tool calls
 - Response correctness (openevals open source) - validates answer quality
-<img width="1313" height="750" alt="Screenshot 2025-12-16 at 2 10 30 PM" src="https://github.com/user-attachments/assets/6d36f03b-180d-450d-809a-448eec27a81b" />
+<img width="660" height="366" alt="Screenshot 2025-12-16 at 2 10 18 PM" src="https://github.com/user-attachments/assets/b5e7b3e1-31de-4978-bba0-2bc47f1800a8" />
 
 **Market Agent** - Relevance + Tool Arguments  
 - Custom LLM-as-judge - evaluates response relevance
 - Custom code tool evaluator - validates tool names + arguments match
-<img width="1321" height="732" alt="Screenshot 2025-12-16 at 2 10 18 PM" src="https://github.com/user-attachments/assets/b5e7b3e1-31de-4978-bba0-2bc47f1800a8" />
-
+<img width="660" height="366" alt="Screenshot 2025-12-16 at 2 10 30 PM" src="https://github.com/user-attachments/assets/6d36f03b-180d-450d-809a-448eec27a81b" />
 ### Key Features
 
 - Daily dataset refresh with latest data from your APIs
