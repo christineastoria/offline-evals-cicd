@@ -141,6 +141,7 @@ jobs:
           --arg report "$REPORT" \
           --arg run_url "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
           '{
+            text: "Financial Agents Evaluation - \($status)",
             blocks: [
               {
                 type: "header",

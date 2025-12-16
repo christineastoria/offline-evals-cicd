@@ -80,9 +80,10 @@ REPORT
     echo "Created sample eval_comment.md with new format for testing"
 fi
 
-# Read evaluation report (limit to 1500 chars)
+# Read evaluation report (limit to 1200 chars for Slack, clean special chars)
 if [ -f eval_comment.md ]; then
-    REPORT=$(head -c 1500 eval_comment.md)
+    # Take first 1200 chars and remove any null bytes or control chars that break JSON
+    REPORT=$(head -c 1200 eval_comment.md | tr -d '\000-\010\013\014\016-\037')
 else
     REPORT="Report not available"
 fi
@@ -101,6 +102,7 @@ jq -n \
   --arg report "$REPORT" \
   --arg run_url "$RUN_URL" \
   '{
+    text: "Financial Agents Evaluation - \($status)",
     blocks: [
       {
         type: "header",
