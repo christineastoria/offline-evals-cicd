@@ -2,14 +2,14 @@ from dotenv import load_dotenv
 from langchain.agents import create_agent
 from langchain_openai import ChatOpenAI
 from datetime import datetime
-import random
 
 load_dotenv(override=True)
 
 MARKET_SYSTEM_PROMPT = """You are a financial market data analyst.
 Use the available tools to fetch current market data and provide insights.
 Always cite specific numbers and data points in your analysis.
-When analyzing stocks, consider both price action and technical indicators."""
+When analyzing stocks, consider both price action and technical indicators. 
+Summarize result in 1-2 sentences concisely."""
 
 def get_stock_price(symbol: str, include_change: bool = True) -> dict:
     """Get current stock price and daily change for a given symbol.
@@ -25,21 +25,28 @@ def get_stock_price(symbol: str, include_change: bool = True) -> dict:
         Replace this mock implementation with calls to your internal market data API
         to fetch real-time stock prices and market data.
     """
-    # Mock data - replace with your internal market data API calls
-    base_prices = {"AAPL": 185.50, "GOOGL": 140.20, "MSFT": 350.75, "TSLA": 245.30}
-    price = base_prices.get(symbol.upper(), 100.0)
-    change = round(random.uniform(-5, 5), 2)
+    # Static mock data matching dataset expectations - replace with your internal API
+    stock_data = {
+        "AAPL": {"price": 185.50, "change": 2.3},
+        "MSFT": {"price": 350.75, "change": 1.8},
+        "GOOGL": {"price": 140.20, "change": 0.0},
+        "TSLA": {"price": 245.30, "change": 1.5}
+    }
+    
+    data = stock_data.get(symbol.upper(), {"price": 100.0, "change": 0.0})
     
     result = {
         "symbol": symbol.upper(),
-        "price": round(price + change, 2),
+        "price": data["price"],
         "timestamp": datetime.now().isoformat()
     }
     
     if include_change:
+        # Calculate change_percent from change and price
+        prev_price = data["price"] - data["change"]
         result.update({
-            "change": change,
-            "change_percent": round((change / price) * 100, 2)
+            "change": data["change"],
+            "change_percent": round((data["change"] / prev_price) * 100, 2) if prev_price != 0 else 0.0
         })
     
     return result
@@ -58,13 +65,20 @@ def get_market_sentiment(sector: str, timeframe: str = "daily") -> dict:
         Replace this mock implementation with calls to your internal sentiment analysis API
         or market intelligence system.
     """
-    sentiments = ["bullish", "bearish", "neutral"]
-    confidence_base = 0.7 if timeframe == "daily" else 0.85
+    # Static mock data matching dataset expectations - replace with your internal API
+    sector_sentiments = {
+        "technology": {"sentiment": "bullish", "confidence": 0.85}
+    }
+    
+    sentiment_data = sector_sentiments.get(sector.lower(), {
+        "sentiment": "neutral",
+        "confidence": 0.75
+    })
     
     return {
         "sector": sector,
-        "sentiment": random.choice(sentiments),
-        "confidence": round(random.uniform(confidence_base, 0.95), 2),
+        "sentiment": sentiment_data["sentiment"],
+        "confidence": sentiment_data["confidence"],
         "timeframe": timeframe,
         "key_factors": ["earnings reports", "interest rates", "global events"],
         "timestamp": datetime.now().isoformat()
@@ -84,9 +98,29 @@ def calculate_moving_average(symbol: str, period: int = 50) -> dict:
         Replace this mock implementation with calls to your internal technical analysis API
         or calculation service for real moving averages and indicators.
     """
-    # Mock data - replace with your internal API for technical indicators
-    current_price = 185.50
-    ma = round(current_price * random.uniform(0.95, 1.05), 2)
+    # Static mock data matching dataset expectations - replace with your internal API
+    ma_data = {
+        "GOOGL": {
+            200: {"current": 140.20, "ma": 138.50}
+        },
+        "AAPL": {
+            50: {"current": 185.50, "ma": 180.00},
+            200: {"current": 185.50, "ma": 175.00}
+        }
+    }
+    
+    # Default values if symbol/period not in lookup
+    default_current = 185.50
+    default_ma = 180.00
+    
+    symbol_data = ma_data.get(symbol.upper(), {})
+    period_data = symbol_data.get(period, {
+        "current": default_current,
+        "ma": default_ma
+    })
+    
+    current_price = period_data["current"]
+    ma = period_data["ma"]
     
     return {
         "symbol": symbol.upper(),

@@ -20,7 +20,7 @@ client = Client()
 
 def generate_portfolio_examples():
     """
-    Generate portfolio analysis examples with expected tool calls.
+    Generate portfolio analysis examples with reference message trajectories.
     
     This function creates a batch of examples with today's date for portfolio evaluation.
     
@@ -33,6 +33,8 @@ def generate_portfolio_examples():
     The examples should represent realistic queries your users would make and the
     expected responses from your portfolio analysis system.
     """
+    from langchain_core.messages import HumanMessage, AIMessage, ToolMessage
+    
     today = datetime.now().strftime("%Y-%m-%d")
     
     # Mock examples - replace with data from your internal portfolio API
@@ -43,9 +45,17 @@ def generate_portfolio_examples():
             },
             "outputs": {
                 "response": f"As of {today}, your portfolio shows a volatility of 18% with a Sharpe ratio of 1.2, indicating moderate risk with good risk-adjusted returns.",
-                "expected_tools": [
-                    {"name": "get_portfolio_data", "args": {"question": "risk profile"}},
-                    {"name": "calculate_portfolio_metrics", "args": {"metric_type": "risk"}}
+                "messages": [
+                    HumanMessage(content=f"What is my portfolio's risk profile as of {today}?"),
+                    AIMessage(content="", tool_calls=[
+                        {"id": "call_1", "name": "get_portfolio_data", "args": {"question": "risk profile"}}
+                    ]),
+                    ToolMessage(content="Portfolio data", tool_call_id="call_1"),
+                    AIMessage(content="", tool_calls=[
+                        {"id": "call_2", "name": "calculate_portfolio_metrics", "args": {"metric_type": "risk"}}
+                    ]),
+                    ToolMessage(content="Metrics", tool_call_id="call_2"),
+                    AIMessage(content=f"As of {today}, your portfolio shows a volatility of 18% with a Sharpe ratio of 1.2, indicating moderate risk with good risk-adjusted returns.")
                 ]
             },
         },
@@ -55,8 +65,13 @@ def generate_portfolio_examples():
             },
             "outputs": {
                 "response": "Your top performing positions are: AAPL (+15%), MSFT (+12%), and GOOGL (+8%).",
-                "expected_tools": [
-                    {"name": "get_portfolio_data", "args": {"question": "top performing positions"}}
+                "messages": [
+                    HumanMessage(content="What are my top performing positions?"),
+                    AIMessage(content="", tool_calls=[
+                        {"id": "call_1", "name": "get_portfolio_data", "args": {"question": "top performing positions"}}
+                    ]),
+                    ToolMessage(content="Portfolio data", tool_call_id="call_1"),
+                    AIMessage(content="Your top performing positions are: AAPL (+15%), MSFT (+12%), and GOOGL (+8%).")
                 ]
             },
         },
@@ -66,8 +81,13 @@ def generate_portfolio_examples():
             },
             "outputs": {
                 "response": "Your YTD return is 12.5%, total return is 45%, with an alpha of 3%.",
-                "expected_tools": [
-                    {"name": "calculate_portfolio_metrics", "args": {"metric_type": "performance"}}
+                "messages": [
+                    HumanMessage(content="Calculate my portfolio's performance metrics"),
+                    AIMessage(content="", tool_calls=[
+                        {"id": "call_1", "name": "calculate_portfolio_metrics", "args": {"metric_type": "performance"}}
+                    ]),
+                    ToolMessage(content="Metrics", tool_call_id="call_1"),
+                    AIMessage(content="Your YTD return is 12.5%, total return is 45%, with an alpha of 3%.")
                 ]
             },
         },
@@ -165,6 +185,7 @@ def create_or_update_dataset(dataset_name: str, examples: list):
     if client.has_dataset(dataset_name=dataset_name):
         print(f"Dataset '{dataset_name}' exists. Performing batch recreation with updated data...")
         dataset = client.read_dataset(dataset_name=dataset_name)
+        print(f"View dataset: {dataset.url}")
         
         # Delete all old examples (batch deletion)
         print(f"Deleting old examples from '{dataset_name}'...")
@@ -179,16 +200,17 @@ def create_or_update_dataset(dataset_name: str, examples: list):
     else:
         print(f"Creating new dataset '{dataset_name}'...")
         dataset = client.create_dataset(dataset_name=dataset_name)
+        print(f"View dataset: {dataset.url}")
         client.create_examples(dataset_id=dataset.id, examples=examples)
         print(f"Created dataset '{dataset_name}' with {len(examples)} examples")
     
     # Tag this version with today's date for tracking
     # See: https://docs.langchain.com/langsmith/manage-datasets#tag-a-version
-    today = datetime.now().strftime("%Y-%m-%d")
-    client.update_dataset_tag(dataset_name=dataset_name, as_of="latest", tag=f"daily-{today}")
-    client.update_dataset_tag(dataset_name=dataset_name, as_of="latest", tag="latest")
-    print(f"Tagged dataset version as 'daily-{today}' and 'latest'")
-    print(f"This version can be referenced in evaluations using the 'daily-{today}' tag")
+    today_str = datetime.now().strftime("%Y-%m-%d")
+    current_time = datetime.now()
+    client.update_dataset_tag(dataset_name=dataset_name, as_of=current_time, tag=f"daily-{today_str}")
+    print(f"Tagged dataset version as 'daily-{today_str}'")
+    print(f"This version can be referenced in evaluations using the 'daily-{today_str}' tag")
 
 if __name__ == "__main__":
     print("="*60)

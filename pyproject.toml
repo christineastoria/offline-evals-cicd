@@ -10,8 +10,8 @@ dependencies = [
     "langsmith>=0.2.0",
     "langgraph>=0.2.58",
     "python-dotenv>=1.0.0",
-    "pytest>=8.0.0",
     "openevals>=0.1.0",
+    "agentevals>=0.0.9",
 ]
 
 [project.optional-dependencies]
@@ -27,18 +27,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
-packages = ["agents", "helpers", "tests"]
-
-[tool.pytest.ini_options]
-markers = [
-    "evaluator: marks tests as offline evaluators (deselect with '-m \"not evaluator\"')",
-    "integration: marks tests as integration tests",
-    "unit: marks tests as unit tests",
-]
-testpaths = ["tests"]
-python_files = ["test_*.py"]
-python_classes = ["Test*"]
-python_functions = ["test_*"]
+packages = ["agents", "helpers", "evals"]
 
 [tool.ruff]
 line-length = 100

@@ -38,10 +38,8 @@ ENV/
 *~
 
 # Testing
-.pytest_cache/
 .coverage
 htmlcov/
-*.xml
 .tox/
 
 # Evaluation configs (generated)

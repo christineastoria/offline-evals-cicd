@@ -1,133 +1,60 @@
 # Financial Agents CI/CD Pipeline
 
-A demonstration of **continuous evaluation** for LLM agents using LangSmith, with daily-refreshed datasets and automated reporting.
+Continuous evaluation for LLM agents with daily-refreshed datasets and automated reporting.
 
 ## Overview
 
-This project showcases how to build a robust evaluation pipeline for financial agents that runs automatically via CI/CD. The key demonstration is **evaluating agents against fresh, real-world data every day** and distributing results to your team.
+Demonstrates evaluating financial agents against fresh data daily using LangSmith evaluations in CI/CD.
 
-### What This Demonstrates
+### Two Agents, Different Evaluation Approaches
 
-**Evaluation Types:**
-- **LLM-as-Judge**: Evaluates response correctness and quality for the portfolio agent
-- **Trajectory Evaluation**: Validates tool selection AND argument correctness for the market agent
+**Portfolio Agent** - Trajectory + Correctness
+- Unordered trajectory matching (agentevals) - validates tool calls
+- Response correctness (openevals) - validates answer quality
 
-**Automated Pipeline:**
-- **Daily Dataset Refresh**: Batch recreates evaluation datasets with today's data from your APIs
-- **Continuous Evaluation**: Runs evaluations automatically on push, PR, or daily schedule
-- **Automated Reporting**: Generates markdown reports and sends to Slack/email
-
-**Two Financial Agents across teams:**
-1. **Portfolio Agent**: Analyzes portfolio performance (demonstrates LLM-as-judge evaluation)
-2. **Market Data Agent**: Fetches market data with tool calls (demonstrates trajectory evaluation with argument validation)
+**Market Agent** - Relevance + Tool Arguments  
+- Custom LLM-as-judge - evaluates response relevance
+- Custom code evaluator - validates tool names + arguments match
 
 ### Key Features
 
-- Daily batch dataset updates with latest financial data from your APIs
-- LLM-as-judge evaluation with configurable pass/fail thresholds
-- Trajectory evaluation that validates tool arguments from `AIMessage.tool_calls`
-- GitHub Actions CI/CD pipeline (runs on push, PR, or cron schedule)
-- Automated Slack notifications with evaluation reports (email alternative available)
-- Versioned datasets with daily tags for reproducibility
+- Daily dataset refresh with latest data from your APIs
+- Trajectory evaluation using agentevals (unordered tool matching)
+- LLM-as-judge with openevals and custom evaluators
+- GitHub Actions CI/CD (push, PR, or cron schedule)
+- Slack notifications with evaluation reports
+- Versioned datasets with daily tags
 
-## Architecture
+## Pipeline Flow
 
 ```
-Continuous Evaluation Pipeline:
-
-┌─────────────────────────────────────────────────────────────┐
-│  Trigger: Push to main/develop, PR, or Daily Cron (9 AM)   │
-└─────────────────────────────────────────────────────────────┘
-                            ↓
-┌─────────────────────────────────────────────────────────────┐
-│  1. Batch Dataset Refresh                                   │
-│     - Delete old examples from LangSmith datasets           │
-│     - Fetch today's data from your internal APIs            │
-│     - Create new examples with fresh financial data         │
-│     - Tag with daily version (e.g., "daily-2024-12-16")     │
-└─────────────────────────────────────────────────────────────┘
-                            ↓
-┌─────────────────────────────────────────────────────────────┐
-│  2. Run Evaluations (Parallel)                              │
-│     - Portfolio: LLM-as-judge (correctness + quality)       │
-│     - Market: Trajectory eval (tool args validation)        │
-│     - Compare against expected outputs in datasets          │
-└─────────────────────────────────────────────────────────────┘
-                            ↓
-┌─────────────────────────────────────────────────────────────┐
-│  3. Generate Report                                         │
-│     - Aggregate evaluation metrics                          │
-│     - Apply pass/fail thresholds                            │
-│     - Create markdown report                                │
-└─────────────────────────────────────────────────────────────┘
-                            ↓
-┌─────────────────────────────────────────────────────────────┐
-│  4. Distribute Results                                      │
-│     - Send Slack notification with summary                  │
-│     - Post PR comment (if triggered by PR)                  │
-│     - Store artifacts in GitHub Actions                     │
-└─────────────────────────────────────────────────────────────┘
+Trigger (Push/PR/Daily 9AM) → Refresh Datasets → Run Evals → Report → Slack
 ```
 
-## Prerequisites
-
-- Python 3.11+
-- [uv](https://docs.astral.sh/uv/) - Fast Python package installer
-- OpenAI API key
-- LangSmith API key
-- Slack webhook URL (optional, for notifications)
+1. **Refresh Datasets**: Delete old examples, fetch today's data, tag with `daily-YYYY-MM-DD`
+2. **Run Evaluations**: Portfolio (trajectory + correctness), Market (relevance + tool args)
+3. **Report**: Aggregate metrics, apply thresholds, create markdown
+4. **Distribute**: Slack notification + PR comment
 
 ## Quick Start
 
-### 1. Install Dependencies
+**Prerequisites:** Python 3.11+, [uv](https://docs.astral.sh/uv/), OpenAI + LangSmith API keys
 
 ```bash
-# Install uv if you haven't already
+# Install
 curl -LsSf https://astral.sh/uv/install.sh | sh
-
-# Install project dependencies
 uv sync
-```
 
-### 2. Environment Configuration
-
-Create a `.env` file with your API keys:
-
-```bash
-# OpenAI Configuration
-OPENAI_API_KEY=your_openai_api_key_here
-
-# LangSmith Configuration
-LANGSMITH_API_KEY=your_langsmith_api_key_here
+# Configure .env
+OPENAI_API_KEY=your_key
+LANGSMITH_API_KEY=your_key
 LANGSMITH_TRACING=true
-LANGSMITH_PROJECT=financial-agents-
-```
 
-### 3. Create Initial Datasets
-
-Run the dataset creation script to set up your evaluation datasets:
-
-```bash
+# Create datasets (replace mock data with your API calls)
 uv run python helpers/create_financial_datasets.py
-```
 
-**Note**: Replace the mock data in this script with calls to your internal APIs to fetch real financial data.
-
-### 4. Test the Agents Locally
-
-```bash
-# Test portfolio agent
-uv run python -c "from agents.portfolio_agent import agent; print(agent.invoke({'messages': [{'role': 'user', 'content': 'What is my portfolio value?'}]}))"
-
-# Test market agent
-uv run python -c "from agents.market_data_agent import agent; print(agent.invoke({'messages': [{'role': 'user', 'content': 'What is AAPL stock price?'}]}))"
-```
-
-### 5. Run Evaluations
-
-```bash
-# Run both evaluations
-uv run pytest tests/offline_evals/ -m evaluator
+# Run evaluations
+uv run python evals/run_all_evals.py
 ```
 
 ## Project Structure
@@ -138,10 +65,10 @@ financial-agents-cicd/
 │   ├── __init__.py
 │   ├── portfolio_agent.py      # Portfolio analysis agent
 │   └── market_data_agent.py    # Market data agent with tools
-├── tests/
-│   └── offline_evals/
-│       ├── test_portfolio_agent.py  # LLM-as-judge eval
-│       └── test_market_agent.py     # Trajectory eval with args
+├── evals/
+│   ├── run_portfolio_eval.py   # Portfolio LLM-as-judge eval
+│   ├── run_market_eval.py      # Market trajectory eval with args
+│   └── run_all_evals.py        # Run all evals in sequence
 ├── helpers/
 │   └── create_financial_datasets.py # Dataset creation/update
 ├── .github/
@@ -154,136 +81,70 @@ financial-agents-cicd/
 └── README.md
 ```
 
-## Agents
+## Agents & Evaluations
 
 ### Portfolio Agent
+**Tools:** `get_portfolio_data()`, `calculate_portfolio_metrics()`
 
-Simple agent that analyzes portfolio data without external tool calls.
-
-**Tools:**
-- `get_portfolio_data()` - Fetch portfolio positions and values
-- `calculate_portfolio_metrics()` - Calculate risk/performance metrics
-
-**Evaluation:**
-- LLM-as-judge for response correctness and quality
-- Thresholds: correctness >= 0.8, quality >= 3.5
+**Evaluators:**
+1. **Trajectory Match** (agentevals, unordered) - Validates correct tools called
+2. **Correctness** (openevals) - Validates response accuracy
+   
+**Thresholds:** trajectory_match >= 0.8, response_correctness >= 0.8
 
 ### Market Data Agent
+**Tools:** `get_stock_price()`, `get_market_sentiment()`, `calculate_moving_average()`
 
-Agent with tool calls for fetching market data and analysis.
+**Evaluators:**
+1. **Relevance** (custom LLM judge) - Evaluates if response addresses question
+2. **Tool + Args Match** (custom code) - Validates exact tool names and arguments
 
-**Tools:**
-- `get_stock_price(symbol, include_change)` - Get current stock prices
-- `get_market_sentiment(sector, timeframe)` - Get sector sentiment
-- `calculate_moving_average(symbol, period)` - Calculate moving averages
-
-**Evaluation:**
-- Trajectory evaluation considering tool selection AND arguments
-- Tool argument validation (symbols, timeframes, periods)
-- Thresholds: trajectory >= 0.75, tool quality >= 3.5
+**Thresholds:** response_relevance >= 0.8, tool_args_match_score >= 0.8
 
 ## Dataset Management
 
-This pipeline uses **batch dataset recreation** to ensure fresh data:
+**Batch recreation daily:** Deletes old examples → Fetches fresh data from your APIs → Creates new examples → Tags with `daily-YYYY-MM-DD`
 
-1. Deletes all old examples from existing datasets
-2. Creates new examples with today's data from your APIs
-3. Tags with daily timestamp and "latest" tag
-4. Creates new version in LangSmith
+**Portfolio dataset:** Stores reference message trajectories (HumanMessage → AIMessage with tool_calls → ToolMessage → final AIMessage)
 
-**To integrate with your APIs:**
+**Market dataset:** Stores expected response + expected_tools list
 
-Edit `helpers/create_financial_datasets.py` and replace mock functions with internal API calls:
-- Portfolio API for positions and risk metrics
-- Market data API for prices and sentiment
-- Technical analysis API for indicators
+**To integrate:** Edit `helpers/create_financial_datasets.py` and replace mock functions with your API calls.
 
-## CI/CD Pipeline
+## CI/CD Setup
 
-### Triggers
+**Triggers:** Push to main/develop, PRs, daily cron (9 AM UTC)
 
-- Push to `main` or `develop` branches
-- Pull requests
-- Daily cron at 9 AM UTC
-
-### Pipeline Jobs
-
-1. **update-datasets**: Recreates datasets with today's data
-2. **run-evaluations**: Runs both agent evaluations in parallel
-3. **generate-report**: Creates markdown evaluation report
-4. **notify-slack**: Sends Slack notification with results
-5. **post-pr-comment**: Comments on PR with evaluation results
-
-### Required GitHub Secrets
-
+**GitHub Secrets:**
 ```bash
-# Core secrets
-OPENAI_API_KEY=your_openai_key
-LANGSMITH_API_KEY=your_langsmith_key
-
-# Slack notifications (recommended)
+OPENAI_API_KEY=your_key
+LANGSMITH_API_KEY=your_key
 SLACK_WEBHOOK_URL=https://hooks.slack.com/services/YOUR/WEBHOOK/URL
 ```
 
-## Notifications
+**Jobs:** update-datasets → run-evaluations → generate-report → notify-slack → post-pr-comment
 
-### Slack Setup (Current Implementation)
-
-This pipeline uses Slack to receive the report for simplicity. Setup:
+## Slack Setup
 
 1. Create Slack app at https://api.slack.com/apps
-2. Enable "Incoming Webhooks"
-3. Add webhook to desired channel (e.g., `#agent-evaluations`)
-4. Copy webhook URL
-5. Add `SLACK_WEBHOOK_URL` secret to GitHub
+2. Enable "Incoming Webhooks" → Add to channel (e.g., `#agent-evals`)
+3. Copy webhook URL → Add as `SLACK_WEBHOOK_URL` GitHub secret
 
-### Email Alternative
+**Email alternative:** Replace notify-slack job with `dawidd6/action-send-mail@v3` (see workflow comments).
 
-If you prefer email notifications, you can replace the `notify-slack` job with email configuration using `dawidd6/action-send-mail@v3`. This requires:
-- SMTP server configuration
-- Email credentials (username/password)
-- Recipient email addresses
-
-See comments in the workflow file for email setup details.
-
-## Evaluation Criteria
-
-### Portfolio Agent
-
-- **Correctness**: Binary evaluation of response accuracy
-- **Quality**: 1-5 rating of analysis comprehensiveness
-- **Pass Criteria**: correctness >= 0.8, quality >= 3.5
-
-## Development
-
-### Running Tests Locally
+## Local Development
 
 ```bash
-# Run all tests
-uv run pytest
+# Run all evals
+uv run python evals/run_all_evals.py
 
-# Run only evaluations
-uv run pytest -m evaluator
-
-# Run with verbose output
-uv run pytest -v tests/offline_evals/
-```
-
-### Pre-commit Hooks
-
-```bash
-# Install pre-commit
-uv run pre-commit install
-
-# Run manually
-uv run pre-commit run --all-files
+# Individual evals
+uv run python evals/run_portfolio_eval.py
+uv run python evals/run_market_eval.py
 ```
 
 ## Resources
-- [LangChain create_agent Documentation](https://docs.langchain.com/oss/python/langchain/overview)
-- [LangSmith Dataset Management](https://docs.langchain.com/langsmith/manage-datasets)
-- [OpenEvals Documentation](https://github.com/langchain-ai/openevals)
-
-## License
-
-MIT License - See LICENSE file for details
+- [LangChain create_agent](https://docs.langchain.com/oss/python/langchain/overview)
+- [LangSmith Datasets](https://docs.langchain.com/langsmith/manage-datasets)
+- [AgentEvals](https://docs.langchain.com/langsmith/trajectory-evals)
+- [OpenEvals](https://github.com/langchain-ai/openevals)

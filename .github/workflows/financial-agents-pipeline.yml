@@ -56,11 +56,11 @@ jobs:
       run: uv sync
     
     - name: Run Portfolio Agent Evaluation (LLM as Judge)
-      run: uv run pytest tests/offline_evals/test_portfolio_agent.py -m evaluator --junitxml=portfolio-eval-results.xml
+      run: uv run python evals/run_portfolio_eval.py
       continue-on-error: false
     
     - name: Run Market Agent Evaluation (Trajectory)
-      run: uv run pytest tests/offline_evals/test_market_agent.py -m evaluator --junitxml=market-eval-results.xml
+      run: uv run python evals/run_market_eval.py
       continue-on-error: false
     
     - name: Upload evaluation configs

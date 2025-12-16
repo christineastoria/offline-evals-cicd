@@ -12,7 +12,9 @@ When users ask about their portfolio, you should analyze:
 - Total portfolio value and composition
 - Individual position performance
 - Risk metrics (volatility, Sharpe ratio, drawdown)
-- Recommendations for rebalancing or optimization"""
+- Recommendations for rebalancing or optimization
+Summarize result in 1-2 sentences concisely.
+"""
 
 def get_portfolio_data(question: str = "") -> dict:
     """Get current portfolio data including positions and risk metrics.
