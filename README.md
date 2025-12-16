@@ -6,15 +6,15 @@ Continuous evaluation for LLM agents with daily-refreshed datasets and automated
 
 Demonstrates evaluating financial agents against fresh data daily using LangSmith evaluations in CI/CD.
 
-### Two Agents, Different Evaluation Approaches
+### Evaluation Approaches
 
 **Portfolio Agent** - Trajectory + Correctness
-- Unordered trajectory matching (agentevals) - validates tool calls
-- Response correctness (openevals) - validates answer quality
+- Unordered trajectory matching (agentevals open source) - validates tool calls
+- Response correctness (openevals open source) - validates answer quality
 
 **Market Agent** - Relevance + Tool Arguments  
 - Custom LLM-as-judge - evaluates response relevance
-- Custom code evaluator - validates tool names + arguments match
+- Custom code tool evaluator - validates tool names + arguments match
 
 ### Key Features
 
@@ -145,6 +145,7 @@ uv run python evals/run_market_eval.py
 
 ## Resources
 - [LangChain create_agent](https://docs.langchain.com/oss/python/langchain/overview)
+- [LangSmith evals](https://docs.langchain.com/langsmith/evaluation)
 - [LangSmith Datasets](https://docs.langchain.com/langsmith/manage-datasets)
 - [AgentEvals](https://docs.langchain.com/langsmith/trajectory-evals)
 - [OpenEvals](https://github.com/langchain-ai/openevals)
