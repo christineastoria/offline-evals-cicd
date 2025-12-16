@@ -17,8 +17,9 @@ Demonstrates evaluating financial agents against fresh data daily using LangSmit
 - Custom LLM-as-judge - evaluates response relevance
 - Custom code tool evaluator - validates tool names + arguments match
 <img width="660" height="366" alt="Screenshot 2025-12-16 at 2 10 30 PM" src="https://github.com/user-attachments/assets/6d36f03b-180d-450d-809a-448eec27a81b" />
-### Key Features
 
+
+### Key Features
 - Daily dataset refresh with latest data from your APIs
 - Trajectory evaluation using agentevals (unordered tool matching)
 - LLM-as-judge with openevals and custom evaluators
@@ -27,11 +28,9 @@ Demonstrates evaluating financial agents against fresh data daily using LangSmit
 - Versioned datasets with daily tags
 
 ## Pipeline Flow
-
 ```
 Trigger (Push/PR/Daily 9AM) → Refresh Datasets → Run Evals → Report → Slack
 ```
-
 1. **Refresh Datasets**: Delete old examples, fetch today's data, tag with `daily-YYYY-MM-DD`
 2. **Run Evaluations**: Portfolio (trajectory + correctness), Market (relevance + tool args)
 3. **Report**: Aggregate metrics, apply thresholds, create markdown
