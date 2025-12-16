@@ -1,7 +1,7 @@
 # Financial Agents CI/CD Pipeline
 
 Demo for continuous daily evaluation of LLM agents with refreshed datasets and automated offline eval reports sent to Slack.
-<img width="1181" height="238" alt="Screenshot 2025-12-16 at 3 35 42 PM" src="https://github.com/user-attachments/assets/98314bb8-adbf-41ec-a5ff-c86f0e3e33e7" />
+<img width="1360" height="274" alt="Screenshot 2025-12-16 at 3 35 42 PM" src="https://github.com/user-attachments/assets/98314bb8-adbf-41ec-a5ff-c86f0e3e33e7" />
 
 
 ## Overview
