@@ -3,22 +3,30 @@
 Continuous evaluation for LLM agents with daily-refreshed datasets and automated reporting.
 
 ## Overview
+Demonstrates evaluating financial agents against fresh data daily using LangSmith evaluations in CI/CD using llm-as-judge, trajectory, and prebuilt evals. 
 
-Demonstrates evaluating financial agents against fresh data daily using LangSmith evaluations in CI/CD.
-
-### Evaluation Approaches
-
-**Portfolio Agent** - Trajectory + Correctness
-- Unordered trajectory matching (agentevals open source) - validates tool calls
-- Response correctness (openevals open source) - validates answer quality
-<img width="660" height="366" alt="Screenshot 2025-12-16 at 2 10 18 PM" src="https://github.com/user-attachments/assets/b5e7b3e1-31de-4978-bba0-2bc47f1800a8" />
-
-**Market Agent** - Relevance + Tool Arguments  
-- Custom LLM-as-judge - evaluates response relevance
-- Custom code tool evaluator - validates tool names + arguments match
-<img width="660" height="366" alt="Screenshot 2025-12-16 at 2 10 30 PM" src="https://github.com/user-attachments/assets/6d36f03b-180d-450d-809a-448eec27a81b" />
-
-
+## Project Structure
+```
+financial-agents-cicd/
+├── agents/
+│   ├── __init__.py
+│   ├── portfolio_agent.py      # Portfolio analysis agent
+│   └── market_data_agent.py    # Market data agent with tools
+├── evals/
+│   ├── run_portfolio_eval.py   # Portfolio LLM-as-judge eval
+│   ├── run_market_eval.py      # Market trajectory eval with args
+│   └── run_all_evals.py        # Run all evals in sequence
+├── helpers/
+│   └── create_financial_datasets.py # Dataset creation/update
+├── .github/
+│   ├── workflows/
+│   │   └── financial-agents-pipeline.yml  # CI/CD pipeline
+│   └── scripts/
+│       └── report_eval.py          # Evaluation report creator
+├── pyproject.toml
+├── langgraph.json
+└── README.md
+```
 ### Key Features
 - Daily dataset refresh with latest data from your APIs
 - Trajectory evaluation using agentevals (unordered tool matching)
@@ -26,6 +34,26 @@ Demonstrates evaluating financial agents against fresh data daily using LangSmit
 - GitHub Actions CI/CD (push, PR, or cron schedule)
 - Slack notifications with evaluation reports
 - Versioned datasets with daily tags
+
+### Agents to evaluate
+
+**Portfolio Agent** 
+Agent which analyzes a specific portfolio and provides recommendations
+Tools: `get_portfolio_data()`, `calculate_portfolio_metrics()`
+Evaluators:  Trajectory + Correctness
+- Unordered trajectory matching (agentevals open source) - validates tool calls
+- Response correctness (openevals open source) - validates answer quality
+<img width="660" height="366" alt="Screenshot 2025-12-16 at 2 10 18 PM" src="https://github.com/user-attachments/assets/b5e7b3e1-31de-4978-bba0-2bc47f1800a8" />
+
+
+**Market Data Agent**
+Agent which analyzes market data and cites specific data points
+Tools: `get_stock_price()`, `get_market_sentiment()`, `calculate_moving_average()`
+Evaluators: Relevance + Tool Arguments  
+- Custom LLM-as-judge - evaluates response relevance
+- Custom code tool evaluator - validates tool names + arguments match
+<img width="660" height="366" alt="Screenshot 2025-12-16 at 2 10 30 PM" src="https://github.com/user-attachments/assets/6d36f03b-180d-450d-809a-448eec27a81b" />
+
 
 ## Pipeline Flow
 ```
@@ -57,49 +85,6 @@ uv run python helpers/create_financial_datasets.py
 uv run python evals/run_all_evals.py
 ```
 
-## Project Structure
-
-```
-financial-agents-cicd/
-├── agents/
-│   ├── __init__.py
-│   ├── portfolio_agent.py      # Portfolio analysis agent
-│   └── market_data_agent.py    # Market data agent with tools
-├── evals/
-│   ├── run_portfolio_eval.py   # Portfolio LLM-as-judge eval
-│   ├── run_market_eval.py      # Market trajectory eval with args
-│   └── run_all_evals.py        # Run all evals in sequence
-├── helpers/
-│   └── create_financial_datasets.py # Dataset creation/update
-├── .github/
-│   ├── workflows/
-│   │   └── financial-agents-pipeline.yml  # CI/CD pipeline
-│   └── scripts/
-│       └── report_eval.py          # Evaluation report creator
-├── pyproject.toml
-├── langgraph.json
-└── README.md
-```
-
-## Agents & Evaluations
-
-### Portfolio Agent
-**Tools:** `get_portfolio_data()`, `calculate_portfolio_metrics()`
-
-**Evaluators:**
-1. **Trajectory Match** (agentevals, unordered) - Validates correct tools called
-2. **Correctness** (openevals) - Validates response accuracy
-   
-**Thresholds:** trajectory_match >= 0.8, response_correctness >= 0.8
-
-### Market Data Agent
-**Tools:** `get_stock_price()`, `get_market_sentiment()`, `calculate_moving_average()`
-
-**Evaluators:**
-1. **Relevance** (custom LLM judge) - Evaluates if response addresses question
-2. **Tool + Args Match** (custom code) - Validates exact tool names and arguments
-
-**Thresholds:** response_relevance >= 0.8, tool_args_match_score >= 0.8
 
 ## Dataset Management
 
