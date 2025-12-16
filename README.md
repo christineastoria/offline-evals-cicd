@@ -65,7 +65,7 @@ Trigger (Push/PR/Daily 9AM) → Batch Refresh Datasets → Run Evals → Report 
 1. **Refresh Datasets**: Delete old examples, fetch today's data, tag with `daily-YYYY-MM-DD`
 2. **Run Evaluations**: Portfolio (trajectory + correctness), Market (relevance + tool args)
 3. **Report**: Aggregate metrics, apply thresholds, create markdown
-4. **Distribute**: Slack notification + PR comment
+4. **Distribute**: Slack notification of report
 
 
 ## Quick Start
@@ -103,7 +103,7 @@ LANGSMITH_API_KEY=your_key
 SLACK_WEBHOOK_URL=https://hooks.slack.com/services/YOUR/WEBHOOK/URL
 ```
 
-**Jobs:** update-datasets → run-evaluations → generate-report → notify-slack → post-pr-comment
+**Jobs:** update-datasets → run-evaluations → generate-report → notify-slack
 
 ## Slack Setup
 
