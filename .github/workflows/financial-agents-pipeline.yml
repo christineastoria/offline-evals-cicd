@@ -174,8 +174,9 @@ jobs:
         jq . slack_message.json > /dev/null || echo "WARNING: Invalid JSON generated"
     
     - name: Send Slack notification
-      uses: slackapi/slack-github-action@v1.25.0
-      with:
-        payload-file-path: slack_message.json
+      run: |
+        curl -X POST "$SLACK_WEBHOOK_URL" \
+          -H 'Content-Type: application/json' \
+          -d @slack_message.json
       env:
         SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
