@@ -10,6 +10,7 @@ import json
 import operator
 import os
 import sys
+import time
 from collections import defaultdict
 from typing import Any, Dict, List, Optional
 
@@ -39,7 +40,7 @@ def format_score(value: Optional[float]) -> str:
     return f"{value:.2f}" if value is not None else "N/A"
 
 
-def process_config(config_path: str, client: Client) -> Dict[str, Any]:
+def process_config(config_path: str, client: Client, run_limit: int = 20) -> Dict[str, Any]:
     """Process a single evaluation config file."""
     print(f"Processing evaluation config: {config_path}")
 
@@ -59,13 +60,19 @@ def process_config(config_path: str, client: Client) -> Dict[str, Any]:
         return {}
 
     try:
-        runs = list(client.list_runs(project_name=experiment_name))
+        print(f"Fetching runs for experiment: {experiment_name} (limit: {run_limit})")
+        # Limit to most recent runs to avoid slow fetches
+        runs = list(client.list_runs(project_name=experiment_name, limit=run_limit))
         if not runs:
             print(f"No runs found for experiment: {experiment_name}")
             return {"experiment_name": experiment_name, "results": []}
 
+        print(f"Found {len(runs)} runs, fetching feedback...")
         run_ids = [r.id for r in runs]
-        feedbacks = client.list_feedback(run_ids=run_ids)
+        
+        # Fetch feedback for the runs
+        feedbacks = list(client.list_feedback(run_ids=run_ids))
+        print(f"Retrieved {len(feedbacks)} feedback entries")
 
         feedback_by_key = defaultdict(list)
         for fb in feedbacks:
@@ -133,8 +140,15 @@ def process_config(config_path: str, client: Client) -> Dict[str, Any]:
         }
 
     except Exception as e:
-        print(f"Error processing experiment {experiment_name}: {e}")
-        return {"experiment_name": experiment_name, "error": str(e)}
+        error_msg = str(e)
+        # Simplify common LangSmith API errors
+        if "Connection error" in error_msg or "Max retries exceeded" in error_msg:
+            error_msg = "LangSmith API connection failed. Please check network connectivity."
+        elif "api.smith.langchain.com" in error_msg:
+            error_msg = "LangSmith API request failed. Please try again later."
+        
+        print(f"Error processing experiment {experiment_name}: {error_msg}")
+        return {"experiment_name": experiment_name, "error": error_msg}
 
 
 # Metric descriptions for common evaluation types
@@ -181,7 +195,11 @@ def write_markdown_report(
 
             if "error" in result:
                 f.write(f"## {experiment_name}\n\n")
-                f.write(f"**Error:** {result['error']}\n\n")
+                # Truncate long error messages to keep report readable
+                error_msg = result['error']
+                if len(error_msg) > 200:
+                    error_msg = error_msg[:200] + "... (truncated)"
+                f.write(f"**Error:** {error_msg}\n\n")
                 continue
 
             if not result.get("table_rows"):
@@ -254,6 +272,14 @@ Examples:
         "--verbose", "-v", action="store_true", help="Enable verbose output"
     )
 
+    parser.add_argument(
+        "--limit",
+        "-l",
+        type=int,
+        default=20,
+        help="Maximum number of runs to fetch per experiment (default: 20)",
+    )
+
     args = parser.parse_args()
 
     # Set up LangSmith client
@@ -285,7 +311,7 @@ Examples:
             print(f"Config file not found: {config_path}")
             continue
 
-        result = process_config(config_path, client)
+        result = process_config(config_path, client, run_limit=args.limit)
         if result:
             results.append(result)
 
