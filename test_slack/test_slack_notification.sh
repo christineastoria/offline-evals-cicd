@@ -24,8 +24,6 @@ if [ -z "$SLACK_WEBHOOK_URL" ]; then
 fi
 
 # Simulate workflow variables
-EVAL_RESULT="completed"  # Change to "failed" to test failure message
-STATUS="completed"
 REPO="christineastoria/offline-evals-cicd"
 BRANCH="main"
 ACTOR="local-test"
@@ -94,7 +92,6 @@ echo ""
 
 # Use jq to properly create JSON with escaped strings
 jq -n \
-  --arg status "$STATUS" \
   --arg repo "$REPO" \
   --arg branch "$BRANCH" \
   --arg actor "$ACTOR" \
@@ -102,7 +99,7 @@ jq -n \
   --arg report "$REPORT" \
   --arg run_url "$RUN_URL" \
   '{
-    text: "Financial Agents Evaluation - \($status)",
+    text: "Financial Agents Evaluation Report",
     blocks: [
       {
         type: "header",
@@ -114,7 +111,6 @@ jq -n \
       {
         type: "section",
         fields: [
-          {type: "mrkdwn", text: "*Status:*\n\($status)"},
           {type: "mrkdwn", text: "*Branch:*\n\($branch)"},
           {type: "mrkdwn", text: "*Triggered by:*\n\($actor)"},
           {type: "mrkdwn", text: "*Repository:*\n\($repo)"}

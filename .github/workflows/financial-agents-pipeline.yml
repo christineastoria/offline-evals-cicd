@@ -116,13 +116,6 @@ jobs:
     - name: Prepare Slack message
       id: slack_message
       run: |
-        # Determine status
-        if [ "${{ needs.run-evaluations.result }}" == "success" ]; then
-          STATUS="completed"
-        else
-          STATUS="failed"
-        fi
-        
         # Read evaluation report (limit to 1200 chars for Slack, clean special chars)
         if [ -f eval_comment.md ]; then
           # Take first 1200 chars and remove any null bytes or control chars that break JSON
@@ -133,7 +126,6 @@ jobs:
         
         # Use jq to properly create JSON with escaped strings
         jq -n \
-          --arg status "$STATUS" \
           --arg repo "${{ github.repository }}" \
           --arg branch "${{ github.ref_name }}" \
           --arg actor "${{ github.actor }}" \
@@ -141,7 +133,7 @@ jobs:
           --arg report "$REPORT" \
           --arg run_url "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
           '{
-            text: "Financial Agents Evaluation - \($status)",
+            text: "Financial Agents Evaluation Report",
             blocks: [
               {
                 type: "header",
@@ -153,7 +145,6 @@ jobs:
               {
                 type: "section",
                 fields: [
-                  {type: "mrkdwn", text: "*Status:*\n\($status)"},
                   {type: "mrkdwn", text: "*Branch:*\n\($branch)"},
                   {type: "mrkdwn", text: "*Triggered by:*\n\($actor)"},
                   {type: "mrkdwn", text: "*Repository:*\n\($repo)"}
@@ -181,8 +172,6 @@ jobs:
         
         # Verify JSON is valid
         jq . slack_message.json > /dev/null || echo "WARNING: Invalid JSON generated"
-        
-        echo "status=$STATUS" >> $GITHUB_OUTPUT
     
     - name: Send Slack notification
       uses: slackapi/slack-github-action@v1.25.0
