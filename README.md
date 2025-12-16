@@ -1,6 +1,6 @@
 # Financial Agents CI/CD Pipeline
 
-Continuous evaluation for LLM agents with daily-refreshed datasets and automated reporting.
+Demo for continuous daily evaluation of LLM agents with refreshed datasets and automated offline eval reports sent to Slack.
 
 ## Overview
 Demonstrates evaluating financial agents against fresh data daily using LangSmith evaluations in CI/CD using llm-as-judge, trajectory, and prebuilt evals. 
@@ -57,12 +57,13 @@ Evaluators: Relevance + Tool Arguments
 
 ## Pipeline Flow
 ```
-Trigger (Push/PR/Daily 9AM) → Refresh Datasets → Run Evals → Report → Slack
+Trigger (Push/PR/Daily 9AM) → Batch Refresh Datasets → Run Evals → Report → Slack
 ```
 1. **Refresh Datasets**: Delete old examples, fetch today's data, tag with `daily-YYYY-MM-DD`
 2. **Run Evaluations**: Portfolio (trajectory + correctness), Market (relevance + tool args)
 3. **Report**: Aggregate metrics, apply thresholds, create markdown
 4. **Distribute**: Slack notification + PR comment
+
 
 ## Quick Start
 
@@ -73,7 +74,9 @@ Trigger (Push/PR/Daily 9AM) → Refresh Datasets → Run Evals → Report → Sl
 curl -LsSf https://astral.sh/uv/install.sh | sh
 uv sync
 
-# Configure .env
+# Configure env
+cp .env.example > .env
+
 OPENAI_API_KEY=your_key
 LANGSMITH_API_KEY=your_key
 LANGSMITH_TRACING=true
@@ -85,16 +88,6 @@ uv run python helpers/create_financial_datasets.py
 uv run python evals/run_all_evals.py
 ```
 
-
-## Dataset Management
-
-**Batch recreation daily:** Deletes old examples → Fetches fresh data from your APIs → Creates new examples → Tags with `daily-YYYY-MM-DD`
-
-**Portfolio dataset:** Stores reference message trajectories (HumanMessage → AIMessage with tool_calls → ToolMessage → final AIMessage)
-
-**Market dataset:** Stores expected response + expected_tools list
-
-**To integrate:** Edit `helpers/create_financial_datasets.py` and replace mock functions with your API calls.
 
 ## CI/CD Setup
 
@@ -115,7 +108,7 @@ SLACK_WEBHOOK_URL=https://hooks.slack.com/services/YOUR/WEBHOOK/URL
 2. Enable "Incoming Webhooks" → Add to channel (e.g., `#agent-evals`)
 3. Copy webhook URL → Add as `SLACK_WEBHOOK_URL` GitHub secret
 
-**Email alternative:** Replace notify-slack job with `dawidd6/action-send-mail@v3` (see workflow comments).
+**Email alternative:** Replace notify-slack job with SAML email setup
 
 ## Local Development
 
